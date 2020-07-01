@@ -8,6 +8,7 @@ Acar::Acar()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(FName("Body"));
 	RootComponent = Body;
@@ -80,11 +81,18 @@ void Acar::BeginPlay()
 {
 	Super::BeginPlay();
 
-	RR->SetRelativeLocation(RRLocation);
+	WheelRR->SetNotifyRigidBodyCollision(true);
+	WheelRR->OnComponentHit.AddDynamic(this, &Acar::OnHit);
 
 	SetupConstraint();
 	
 }
+
+void Acar::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	ApplyForce();
+}
+
 
 void Acar::SetupConstraint()
 {
@@ -103,22 +111,27 @@ void Acar::SetupConstraint()
 
 void Acar::AddDrivingForce(float Force)
 {
-	float MultipliedForce = Force * MaxDrivingForce;
+	float ForceMagnitude= Force * MaxDrivingForce;
+	TotalForceMagnitudeThisFrame += ForceMagnitude;
+}
 
-	UE_LOG(LogTemp, Warning, TEXT("%f"), MultipliedForce);
-	WheelRR->AddForce(AxleFL->GetRightVector() * MultipliedForce);
-	WheelRL->AddForce(AxleFL->GetRightVector() * MultipliedForce);
-	WheelFR->AddForce(AxleFL->GetRightVector() * MultipliedForce);
-	WheelFL->AddForce(AxleFL->GetRightVector() * MultipliedForce);
+void Acar::ApplyForce()
+{
+	UE_LOG(LogTemp, Warning, TEXT("%f"), TotalForceMagnitudeThisFrame);
+	WheelRR->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
+	WheelRL->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
+	WheelFR->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
+	WheelFL->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
 }
 
 // Called every frame
 void Acar::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-
-
+	if (GetWorld()->TickGroup == TG_PostPhysics)
+	{
+		TotalForceMagnitudeThisFrame = 0;
+	}
 
 }
 
