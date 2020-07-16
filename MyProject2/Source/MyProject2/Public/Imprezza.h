@@ -186,6 +186,8 @@ public:
 	FKeyHandle TC1;
 	FKeyHandle TC2;
 	FKeyHandle TC3;
+	FKeyHandle TC4;
+	FKeyHandle TC5;
 
 	UPROPERTY(EditAnywhere, Category = "Curve Category")
 		FRuntimeFloatCurve ForceCurve;
@@ -243,8 +245,8 @@ public:
 	UPROPERTY(Category = Camera, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		UCameraComponent* Camera;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Drive Type")
-		EDriveType DriveType = EDriveType::AWD;
+	UPROPERTY(EditDefaultsOnly, Category = "Drive Type")
+		EDriveType DriveType = EDriveType::RWD;
 
 	void LookX(float Value);
 	void LookY(float Value);

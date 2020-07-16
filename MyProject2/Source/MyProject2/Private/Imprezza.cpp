@@ -182,10 +182,14 @@ AImprezza::AImprezza()
 	TC1 = FKeyHandle();
 	TC2 = FKeyHandle();
 	TC3 = FKeyHandle();
+	TC4 = FKeyHandle();
+	TC5 = FKeyHandle();
 
 	TorqueCurve.EditorCurveData.AddKey(0.f, 0.f, false, TC1);
-	TorqueCurve.EditorCurveData.AddKey(4500.f, 200.f, false, TC2);
-	TorqueCurve.EditorCurveData.AddKey(9000.f, 105.f, false, TC3);
+	TorqueCurve.EditorCurveData.AddKey(2000.f, 250.f, false, TC2);
+	TorqueCurve.EditorCurveData.AddKey(4000.f, 500.f, false, TC3);
+	TorqueCurve.EditorCurveData.AddKey(6000.f, 350.f, false, TC4);
+	TorqueCurve.EditorCurveData.AddKey(8000.f, 200.f, false, TC5);
 
 	TorqueCurve.EditorCurveData.SetKeyTangentMode(TC1, ERichCurveTangentMode::RCTM_Auto);
 	TorqueCurve.EditorCurveData.SetKeyInterpMode(TC1, ERichCurveInterpMode::RCIM_Cubic);
@@ -195,6 +199,12 @@ AImprezza::AImprezza()
 
 	TorqueCurve.EditorCurveData.SetKeyTangentMode(TC3, ERichCurveTangentMode::RCTM_Auto);
 	TorqueCurve.EditorCurveData.SetKeyInterpMode(TC3, ERichCurveInterpMode::RCIM_Cubic);
+
+	TorqueCurve.EditorCurveData.SetKeyTangentMode(TC4, ERichCurveTangentMode::RCTM_Auto);
+	TorqueCurve.EditorCurveData.SetKeyInterpMode(TC4, ERichCurveInterpMode::RCIM_Cubic);
+
+	TorqueCurve.EditorCurveData.SetKeyTangentMode(TC5, ERichCurveTangentMode::RCTM_Auto);
+	TorqueCurve.EditorCurveData.SetKeyInterpMode(TC5, ERichCurveInterpMode::RCIM_Cubic);
 
 	FC1 = FKeyHandle();
 	FC2 = FKeyHandle();
@@ -412,7 +422,7 @@ void AImprezza::Tick(float DeltaTime)
 		//UE_LOG(LogTemp, Warning, TEXT("LongSlipVelocity %i: %f"),i ,LongSlipVelocity[i]);
 
 
-		if (WheelContact[i])
+		if (bWheelContact)
 		{
 			/*Fx[i] = Fz[i] * 0.5 * ForwardAxisValue;
 			Fy[i] = FMath::Clamp(WheelLinearVelocityLocal[i].Y*-1 * Fz[i], -Fz[i], Fz[i]);
@@ -440,6 +450,10 @@ void AImprezza::Tick(float DeltaTime)
 
 			Fx[i] = TireForce.X;
 			Fy[i] = TireForce.Y;
+
+			WheelAngularVelocity[i] = WheelAngularVelocity[i] +
+				(((FMath::Max(Fz[i], 0.f) * (Wheel[i].Radius / 100) * FMath::Clamp((LongSlipVelocity[i] / -10), -1.f, 1.f))
+					/ WheelInertia[i]) * DeltaTime);
 		}
 		else
 		{
@@ -450,7 +464,7 @@ void AImprezza::Tick(float DeltaTime)
 		auto AddingForce = gForwardVector * Fx[i] + gRightVector * Fy[i];
 		Body->AddForceAtLocation(AddingForce * 100, ArrayHitResult[i].Location);
 
-		UE_LOG(LogTemp, Warning, TEXT("%i Fx: %f Fy: %f"), i, Fx[i], Fy[i]);
+		UE_LOG(LogTemp, Warning, TEXT("%i Fx: %f Fy: %f wheelangularvelocity %f"), i, Fx[i], Fy[i], WheelAngularVelocity[i]);
 
 		//wheel rotation
 		if (i == 0 || i == 2) {
@@ -550,7 +564,7 @@ void AImprezza::Throttle(float Value)
 
 void AImprezza::Forward(float Value)
 {
-	ForwardAxisValue = Value;
+	//ForwardAxisValue = Value;
 
 	//UE_LOG(LogTemp, Warning, TEXT("Throttle %f"), Value);
 }
