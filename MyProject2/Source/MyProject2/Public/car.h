@@ -40,7 +40,19 @@ private:
 
 	float TotalForceMagnitudeThisFrame = 0;
 
+	UFUNCTION(BlueprintCallable, Category = Input)
+		void AddDrivingForce(float Force);
 
+	UPROPERTY(EditDefaultsOnly)
+		float MaxDrivingForce = 40000;
+
+	UFUNCTION(BlueprintCallable, Category = Input)
+	void SteerRight(float value);
+
+	float InitialYaw, CurrentYaw;
+
+	UPROPERTY(EditAnywhere)
+		float TargetYaw = 30.f;
 
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
@@ -111,9 +123,4 @@ private:
 		FVector FLLocation;	
 
 
-	UFUNCTION(BlueprintCallable, Category = Input)
-	void AddDrivingForce(float Force);
-
-	UPROPERTY(EditDefaultsOnly)
-	float MaxDrivingForce = 40000;
 };

@@ -84,7 +84,22 @@ void Acar::BeginPlay()
 	WheelRR->SetNotifyRigidBodyCollision(true);
 	WheelRR->OnComponentHit.AddDynamic(this, &Acar::OnHit);
 
+	WheelRL->SetNotifyRigidBodyCollision(true);
+	WheelRL->OnComponentHit.AddDynamic(this, &Acar::OnHit);
+
+	WheelFR->SetNotifyRigidBodyCollision(true);
+	WheelFR->OnComponentHit.AddDynamic(this, &Acar::OnHit);
+
+	WheelFL->SetNotifyRigidBodyCollision(true);
+	WheelFL->OnComponentHit.AddDynamic(this, &Acar::OnHit);
+
 	SetupConstraint();
+
+	InitialYaw = WheelFL->GetRelativeRotation().Yaw;
+	CurrentYaw = InitialYaw;
+	TargetYaw += InitialYaw;
+
+	UE_LOG(LogTemp, Warning, TEXT("Initial Yaw %f, CurrentYaw %f, TargetYaw,%f"), InitialYaw, CurrentYaw, TargetYaw);
 	
 }
 
@@ -115,9 +130,9 @@ void Acar::AddDrivingForce(float Force)
 	TotalForceMagnitudeThisFrame += ForceMagnitude;
 }
 
+
 void Acar::ApplyForce()
 {
-	UE_LOG(LogTemp, Warning, TEXT("%f"), TotalForceMagnitudeThisFrame);
 	WheelRR->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
 	WheelRL->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
 	WheelFR->AddForce(AxleFL->GetRightVector() * TotalForceMagnitudeThisFrame);
@@ -132,13 +147,26 @@ void Acar::Tick(float DeltaTime)
 	{
 		TotalForceMagnitudeThisFrame = 0;
 	}
-
+	
 }
 
 // Called to bind functionality to input
 void Acar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
+void Acar::SteerRight(float value)
+{
+	//float PassYaw = FMath::Clamp<float>(TargetYaw, 0, 30);
+	float Angle = value * 30;
+	float DeltaTime = GetWorld()->DeltaTimeSeconds;
+	float PassYaw = FMath::FInterpConstantTo(0, Angle, DeltaTime ,15);
+
+	FRotator PassValue(0.f, PassYaw, 0.f);
+
+	UE_LOG(LogTemp, Warning, TEXT("Initial Yaw %f, CurrentYaw %f, TargetYaw,%f"), InitialYaw, CurrentYaw, TargetYaw)
+
+	WheelFL->SetRelativeRotation(PassValue);
+	WheelFR->SetRelativeRotation(PassValue);
+}
