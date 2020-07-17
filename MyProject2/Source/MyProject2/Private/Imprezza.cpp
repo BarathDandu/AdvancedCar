@@ -438,7 +438,7 @@ void AImprezza::Tick(float DeltaTime)
 			if ((LongSlipVelocity[i] * WheelLinearVelocityLocal[i].X) > 0)
 			{
 				//Traction = Drivetorque/radius
-				LongLateralSlipVector.X = FMath::Clamp( (DriveTorque[i] / (Wheel[i].Radius / 100)) / FMath::Max(Fz[i], 0.000001f),-2.f,2.f );
+				LongLateralSlipVector.X = FMath::Clamp( (DriveTorque[i] / (Wheel[i].Radius / 100)) / FMath::Max(Fz[i], 0.00001f),-2.f,2.f );
 			}
 			else
 			{
@@ -464,7 +464,7 @@ void AImprezza::Tick(float DeltaTime)
 		auto AddingForce = gForwardVector * Fx[i] + gRightVector * Fy[i];
 		Body->AddForceAtLocation(AddingForce * 100, ArrayHitResult[i].Location);
 
-		UE_LOG(LogTemp, Warning, TEXT("%i Fx: %f Fy: %f wheelangularvelocity %f"), i, Fx[i], Fy[i], WheelAngularVelocity[i]);
+		//UE_LOG(LogTemp, Warning, TEXT("%i Fx: %f Fy: %f wheelangularvelocity %f"), i, Fx[i], Fy[i], WheelAngularVelocity[i]);
 
 		//wheel rotation
 		if (i == 0 || i == 2) {
@@ -475,7 +475,6 @@ void AImprezza::Tick(float DeltaTime)
 			WheelComponent[i]->AddLocalRotation(
 				FRotator((FMath::RadiansToDegrees(-WheelAngularVelocity[i]) * DeltaTime), 0.f, 0.f));
 		}
-
 
 		if (DebugForces)
 		{
@@ -493,8 +492,36 @@ void AImprezza::Tick(float DeltaTime)
 		}
 
 	}
-
 	//UE_LOG(LogTemp, Warning, TEXT("Gear: %f, Total Gear Ratio: %f"), GearRatio[Gear], TotalGearRatio);
+
+
+	//gettotaldrivevelocity
+	if (DriveType == EDriveType::FWD)
+	{
+		TotalDriveAxisAngularVelocity = (WheelAngularVelocity[0] + WheelAngularVelocity[1]) * 0.5;
+	}
+	else if (DriveType == EDriveType::RWD)
+	{
+		TotalDriveAxisAngularVelocity = (WheelAngularVelocity[2] + WheelAngularVelocity[3]) * 0.5;
+	}
+	else
+	{
+		TotalDriveAxisAngularVelocity = (WheelAngularVelocity[0] + WheelAngularVelocity[1] +
+			WheelAngularVelocity[2] + WheelAngularVelocity[3]) * 0.25;
+	}
+
+	//WheelsAccelerateTheEngine
+	ClutchAngularVelocity =  TotalDriveAxisAngularVelocity * TotalGearRatio;
+	
+	ClutchScale = FMath::Lerp(0.07f, 0.3f, FMath::Abs(
+		FVector::DotProduct( Body->GetForwardVector(), 
+			Body->GetPhysicsLinearVelocity().GetSafeNormal())));
+	
+	if(Gear != 1)
+	EngineAngularVelocity = FMath::Clamp((EngineAngularVelocity + (ClutchScale * (ClutchAngularVelocity - EngineAngularVelocity))),
+		(RPM_to_RAD_PS*Engine.IdleRPM) , (RPM_to_RAD_PS*Engine.MaxRPM));
+
+	UE_LOG(LogTemp, Warning, TEXT("ClutchScale %f"), ClutchScale);
 }
 
 // Called to bind functionality to input

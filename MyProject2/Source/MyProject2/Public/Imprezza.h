@@ -40,7 +40,7 @@ struct FSuspensionStruct
 	GENERATED_BODY()
 
 		FSuspensionStruct()
-		:Rest_Length(50.f), Travel(10.f), Stiffness(1500.f), Damper(15.f), Force_Min(-2000.f), Force_Max(6000.f) {}
+		:Rest_Length(50.f), Travel(10.f), Stiffness(2500.f), Damper(25.f), Force_Min(-2000.f), Force_Max(6000.f) {}
 
 	FSuspensionStruct(float inRestLength, float inTravel, float inStiffness, float inDamper, float inMin, float inMax)
 		: Rest_Length(inRestLength), Travel(inTravel), Stiffness(inStiffness), Damper(inDamper), Force_Min(inMin), Force_Max(inMax) {}
@@ -154,6 +154,12 @@ public:
 
 	float LongSlipNormalized = 0.f;
 
+	float ClutchScale = 0.f;
+
+	float ClutchAngularVelocity = 0.f;
+
+	float TotalDriveAxisAngularVelocity = 0.f;
+
 	FVector2D LongLateralSlipVector ;
 
 	float FxVal = 0;
@@ -163,7 +169,7 @@ public:
 	FVector2D TireForce;
 
 	UPROPERTY(EditDefaultsOnly)
-		float GearChangeTime = 0.5f;
+		float GearChangeTime = 0.3f;
 
 	UPROPERTY(EditDefaultsOnly)
 		float FrontBiasPercent = 0.3f;
