@@ -122,11 +122,15 @@ public:
 
 	TArray<float> LongSlipVelocity;
 
+	TArray<float> BrakeTorque;
+
 	float DeltaTimee;
 
-	float ForwardAxisValue = 0;
-
 	float ThrottleValue = 0;
+
+	float BrakeValue = 0;
+
+	float HandBrakeValue = 0;
 
 	float EngineRPM = 0;
 
@@ -166,6 +170,9 @@ public:
 
 	float FyVal = 0;
 
+	UPROPERTY()
+	float ApplyBrakeTorque;
+
 	FVector2D TireForce;
 
 	UPROPERTY(EditDefaultsOnly)
@@ -174,8 +181,17 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 		float FrontBiasPercent = 0.3f;
 
+	UPROPERTY(EditDefaultsOnly)
+		float BrakeBiasPercent = 0.7f;
+
+	UPROPERTY(EditDefaultsOnly)
+		float BrakeStrength = 1500.f;
+
 	UPROPERTY(EditAnyWhere)
 		bool ThrottleFilter = false;
+
+	UPROPERTY(EditAnyWhere)
+		bool BrakeFilter = false;
 
 	UPROPERTY(EditAnyWhere)
 		float SteeringAngle;
@@ -252,13 +268,14 @@ public:
 		UCameraComponent* Camera;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Drive Type")
-		EDriveType DriveType = EDriveType::RWD;
+		EDriveType DriveType = EDriveType::AWD;
 
 	void LookX(float Value);
 	void LookY(float Value);
 	void Steer(float Value);
-	void Forward(float Value);
 	void Throttle(float Value);
+	void HandBrake(float Value);
+	void Brake(float Value);
 	void SetBodyVisibility();
 	void GearUp();
 	void GearDown();

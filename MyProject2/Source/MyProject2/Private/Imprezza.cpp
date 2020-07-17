@@ -42,6 +42,7 @@ AImprezza::AImprezza()
 	TopLinkRR = CreateDefaultSubobject<USceneComponent>(FName("TopLinkRR"));
 	TopLinkRR->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, "RR");
 
+
 	static ConstructorHelpers::FObjectFinder<UStaticMesh>WheelMesh(TEXT("/Game/Imprezza/Wheel_33_01"));
 
 	WheelFL = CreateDefaultSubobject<UStaticMeshComponent>(FName("WheelFL"));
@@ -85,7 +86,7 @@ AImprezza::AImprezza()
 	if (WheelMesh.Succeeded())
 	{
 		WheelRR->SetStaticMesh(WheelMesh.Object);
-		WheelRR->SetRelativeLocation(FVector(0.f, 0.f, -50.f));
+		WheelRR->SetRelativeLocation(FVector(0.f, 0.f,-50.f));
 		WheelRR->SetWorldScale3D(FVector(1.f, 1.f, 1.f));
 		WheelRR->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
 		WheelRR->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -293,6 +294,9 @@ void AImprezza::BeginPlay()
 		Fy.Add(CurrentLength);
 		Fz.Add(CurrentLength);
 
+		BrakeTorque.Add(CurrentLength);
+
+
 		WheelInertia[i] = FMath::Square(Wheel[i].Radius / 100) * Wheel[i].Mass * 0.5f;
 
 		UE_LOG(LogTemp, Warning, TEXT("Torque Bias: %f"), TorqueRatio[i]);
@@ -490,10 +494,22 @@ void AImprezza::Tick(float DeltaTime)
 				DrawDebugLine(GetWorld(), DebugLineStart, DebugLineEnd[j], DebugColor[j], false, 0.f, 0, 8.f);
 			}
 		}
+		//ApplyBrakeTorque
+		ApplyBrakeTorque = WheelAngularVelocity[i] +
+			(((BrakeTorque[i] * (FMath::Sign(WheelAngularVelocity[i]) * -1)) / WheelInertia[i]) * DeltaTime);
+
+		//Compare Wheel velocity before and after braking
+		if (FMath::Sign(ApplyBrakeTorque) == (FMath::Sign(WheelAngularVelocity[i])))
+		{
+			WheelAngularVelocity[i] = ApplyBrakeTorque;
+		}
+		else
+		{
+			WheelAngularVelocity[i] = 0.f;
+		}
 
 	}
 	//UE_LOG(LogTemp, Warning, TEXT("Gear: %f, Total Gear Ratio: %f"), GearRatio[Gear], TotalGearRatio);
-
 
 	//gettotaldrivevelocity
 	if (DriveType == EDriveType::FWD)
@@ -521,7 +537,7 @@ void AImprezza::Tick(float DeltaTime)
 	EngineAngularVelocity = FMath::Clamp((EngineAngularVelocity + (ClutchScale * (ClutchAngularVelocity - EngineAngularVelocity))),
 		(RPM_to_RAD_PS*Engine.IdleRPM) , (RPM_to_RAD_PS*Engine.MaxRPM));
 
-	UE_LOG(LogTemp, Warning, TEXT("ClutchScale %f"), ClutchScale);
+	//UE_LOG(LogTemp, Warning, TEXT("ClutchScale %f"), ClutchScale);
 }
 
 // Called to bind functionality to input
@@ -532,8 +548,9 @@ void AImprezza::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Look_X", this, &AImprezza::LookX);
 	PlayerInputComponent->BindAxis("Look_Y", this, &AImprezza::LookY);
 	PlayerInputComponent->BindAxis("SteerR", this, &AImprezza::Steer);
-	PlayerInputComponent->BindAxis("Forward", this, &AImprezza::Forward);
+	PlayerInputComponent->BindAxis("Brake", this, &AImprezza::Brake);
 	PlayerInputComponent->BindAxis("Throttle", this, &AImprezza::Throttle);
+	PlayerInputComponent->BindAxis("HandBrake", this, &AImprezza::HandBrake);
 
 	PlayerInputComponent->BindAction("BodyVisibility", IE_Pressed, this, &AImprezza::SetBodyVisibility);
 	PlayerInputComponent->BindAction("P", IE_Pressed, this, &AImprezza::GearUp);
@@ -589,13 +606,48 @@ void AImprezza::Throttle(float Value)
 	//UE_LOG(LogTemp, Warning, TEXT("EngineRPM :%f, EngineTorque: %f "), EngineRPM, EngineTorque);
 }
 
-void AImprezza::Forward(float Value)
+void AImprezza::Brake(float Value)
 {
-	//ForwardAxisValue = Value;
+	BrakeFilter = false;
 
-	//UE_LOG(LogTemp, Warning, TEXT("Throttle %f"), Value);
+	if (BrakeFilter == false)
+	{
+		BrakeValue = Value;
+	}
+	else
+	{
+		if (Value != 0)
+		{
+			BrakeValue = FMath::Min((DeltaTimee * 1 + BrakeValue), 1.f);
+		}
+		else
+		{
+			BrakeValue = FMath::Max((BrakeValue - DeltaTimee * 2), 0.f);
+		}
+	}
+	//GetBrakeTorque
+	for (int32 i = 0; i < 4; i++)
+	{
+		if (i == 0 || i == 1)
+		{
+			BrakeTorque[i] = BrakeStrength * BrakeValue * BrakeBiasPercent;
+		}
+		else
+		{
+			BrakeTorque[i] = FMath::Clamp((BrakeStrength * BrakeValue * (1 - BrakeBiasPercent)),0.f,4000.f);
+			BrakeTorque[i] = FMath::Clamp(((BrakeStrength * 2) * HandBrakeValue), 0.f, 4000.f);
+		}
+
+	}
+
+
+	UE_LOG(LogTemp, Warning, TEXT("BrakeValue %f"), HandBrakeValue);
 }
 
+void AImprezza::HandBrake(float Value)
+{
+	HandBrakeValue = Value;
+}
 
 void AImprezza::Steer(float Value)
 {
